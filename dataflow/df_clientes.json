@@ -12,19 +12,33 @@
 					"name": "source1"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "clientes_sql",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
-				},
-				{
-					"name": "split1"
 				},
 				{
 					"name": "aggregate1"
 				},
 				{
 					"name": "derivedColumn2"
+				},
+				{
+					"name": "derivedColumn3"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "split2"
 				}
 			],
 			"scriptLines": [
@@ -42,17 +56,53 @@
 				"     ignoreNoFilesFound: false) ~> source1",
 				"source1 derive(nombre = initCap(lower(trim(nombre))),",
 				"          ciudad = initCap(lower(trim(ciudad))),",
-				"          email = lower(trim(email))) ~> derivedColumn1",
-				"derivedColumn1 split(!isNull(cliente_id)&&!isNull(nombre)&&!isNull(ciudad)&&!isNull(email)&& email !='' &&!isNull(telefono)&& telefono !='' ,",
-				"     disjoint: false) ~> split1@(validos, rechazados)",
-				"split1@validos aggregate(groupBy(cliente_id),",
+				"          email = lower(trim(email)),",
+				"          telefono = trim(telefono)) ~> derivedColumn1",
+				"split2@validos aggregate(groupBy(cliente_id),",
 				"     nombre = first(nombre),",
 				"          email = first(email),",
 				"          telefono = first(telefono),",
 				"          ciudad = first(ciudad),",
 				"          segmento = first(segmento),",
 				"          fecha_registro = first(fecha_registro)) ~> aggregate1",
-				"aggregate1 derive(fecha_registro = toDate(fecha_registro)) ~> derivedColumn2"
+				"aggregate1 derive(fecha_registro = toDate(fecha_registro)) ~> derivedColumn2",
+				"derivedColumn1 derive(ciudad = iif(\r",
+				"    upper(trim(ciudad)) == 'SCZ',\r",
+				"    'Santa Cruz de la Sierra',\r",
+				"    trim(ciudad)\r",
+				")) ~> derivedColumn3",
+				"derivedColumn3 split(!isNull(email) && regexMatch(email, `^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$`),",
+				"     disjoint: false) ~> split1@(valido, rechazados)",
+				"split1@valido split(!isNull(cliente_id) && !isNull(nombre) && !isNull(ciudad) && !isNull(email)&& email != '' && !isNull(telefono)&& telefono != '',",
+				"     disjoint: false) ~> split2@(validos, rechazado)",
+				"derivedColumn2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          cliente_id as string,",
+				"          nombre as string,",
+				"          email as string,",
+				"          telefono as string,",
+				"          ciudad as string,",
+				"          fecha_registro as date,",
+				"          segmento as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          cliente_id,",
+				"          nombre,",
+				"          email,",
+				"          telefono,",
+				"          ciudad,",
+				"          fecha_registro,",
+				"          segmento",
+				"     )) ~> sink1"
 			]
 		}
 	}
