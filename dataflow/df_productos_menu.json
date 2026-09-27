@@ -1,5 +1,5 @@
 {
-	"name": "productos_menu",
+	"name": "df_productos_menu",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {

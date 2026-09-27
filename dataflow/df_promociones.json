@@ -1,5 +1,5 @@
 {
-	"name": "dt_promociones",
+	"name": "df_promociones",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
